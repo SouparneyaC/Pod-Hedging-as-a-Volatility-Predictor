@@ -1,4 +1,4 @@
-"Ticker","Company","Divergence (%)","Net Change (%)","Buying Pods","Selling Pods","Total Value"
+"Ticker","Company","Hedging (%)","Net Change (%)","Buying Pods","Selling Pods","Total Value"
 "CELH","CELSIUS HLDGS INC","20674.8%","1363.3%",1,1,"$132.1M"
 "MCHP","MICROCHIP TECHNOLOGY INC.","2168.3%","283.9%",1,1,"$79.9M"
 "NVDA","NVIDIA CORPORATION","56.7%","-37.9%",1,2,"$2,110.1M"

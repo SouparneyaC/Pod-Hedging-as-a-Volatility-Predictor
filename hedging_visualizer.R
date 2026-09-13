@@ -42,7 +42,7 @@ create_butterfly_chart <- function(institutional_data, ticker_symbol, save_plot 
       name = "Signal"
     ) +
     labs(
-      title = paste0("Submanager Divergence: ", company_name, " (", ticker_upper, ")"),
+      title = paste0("Submanager Hedging: ", company_name, " (", ticker_upper, ")"),
       subtitle = "Selling ← | → Buying",
       x = "Position Change (%)",
       y = "Submanager"

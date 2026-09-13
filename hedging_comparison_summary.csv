@@ -1,4 +1,4 @@
-"Ticker","Company","Submanagers","Buying","Selling","Max_Increase","Max_Decrease","Divergence_Spread","Aggregate_Change","Total_Value","Most_Bullish_Manager","Most_Bearish_Manager"
+"Ticker","Company","Submanagers","Buying","Selling","Max_Increase","Max_Decrease","Hedging_Spread","Aggregate_Change","Total_Value","Most_Bullish_Manager","Most_Bearish_Manager"
 "CELH","CELSIUS HLDGS INC",2,1,1,"20632.8%","-42.1%","20674.8%","1363.3%","$132.1M","Main L.P.","Investment Management ;"
 "MCHP","MICROCHIP TECHNOLOGY INC.",2,1,1,"2108.4%","-59.9%","2168.3%","283.9%","$79.9M","Main L.P.","Investment Management ;"
 "NVDA","NVIDIA CORPORATION",3,1,2,"0.2%","-56.5%","56.7%","-37.9%","$2,110.1M","Heliant Adviser ;","Main L.P."

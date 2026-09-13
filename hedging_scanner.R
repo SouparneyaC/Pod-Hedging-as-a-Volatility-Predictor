@@ -1,18 +1,18 @@
-# R/divergence_scanner.R
-# Production-grade scanner for detecting submanager conviction divergence
+# R/hedging_scanner.R
+# Production-grade scanner for detecting submanager conviction hedging
 
 library(dplyr)
 library(tidyr)
 
-calculate_divergence <- function(institutional_data, 
+calculate_hedging <- function(institutional_data, 
                                   min_position_value = 1000000,
-                                  min_divergence_threshold = 20) {
+                                  min_hedging_threshold = 20) {
   
   cat("================================================================\n")
-  cat("SUBMANAGER DIVERGENCE SCANNER\n")
+  cat("SUBMANAGER HEDGING SCANNER\n")
   cat("================================================================\n\n")
   
-  cat("Analyzing institutional positions for divergence signals...\n\n")
+  cat("Analyzing institutional positions for hedging signals...\n\n")
   
   stock_positions <- institutional_data %>%
     filter(
@@ -29,7 +29,7 @@ calculate_divergence <- function(institutional_data,
   
   cat("Filtered to", nrow(stock_positions), "significant stock positions\n\n")
   
-  divergence_analysis <- stock_positions %>%
+  hedging_analysis <- stock_positions %>%
     group_by(issuerQkid, issuer, issuerTicker) %>%
     summarise(
       n_submanagers = n(),
@@ -51,29 +51,29 @@ calculate_divergence <- function(institutional_data,
       agg_pct_change = ifelse(old_total_shares != 0,
                               (total_qoq_change / old_total_shares) * 100,
                               NA),
-      has_divergence = (n_buying > 0 & n_selling > 0),
-      divergence_magnitude = range_pct_change,
-      divergence_score = case_when(
-        !has_divergence ~ 0,
+      has_hedging = (n_buying > 0 & n_selling > 0),
+      hedging_magnitude = range_pct_change,
+      hedging_score = case_when(
+        !has_hedging ~ 0,
         range_pct_change >= 100 ~ 100,
         range_pct_change >= 50 ~ 75,
-        range_pct_change >= min_divergence_threshold ~ 50,
+        range_pct_change >= min_hedging_threshold ~ 50,
         TRUE ~ 25
       )
     ) %>%
     filter(
       n_submanagers >= 2,
-      has_divergence,
-      divergence_magnitude >= min_divergence_threshold
+      has_hedging,
+      hedging_magnitude >= min_hedging_threshold
     ) %>%
-    arrange(desc(divergence_score), desc(divergence_magnitude))
+    arrange(desc(hedging_score), desc(hedging_magnitude))
   
-  cat("Found", nrow(divergence_analysis), "stocks with submanager divergence\n\n")
+  cat("Found", nrow(hedging_analysis), "stocks with submanager hedging\n\n")
   
-  return(divergence_analysis)
+  return(hedging_analysis)
 }
 
-get_divergence_detail <- function(institutional_data, ticker_symbol) {
+get_hedging_detail <- function(institutional_data, ticker_symbol) {
   ticker_upper <- toupper(ticker_symbol)
   
   positions <- institutional_data %>%
@@ -97,36 +97,36 @@ get_divergence_detail <- function(institutional_data, ticker_symbol) {
   return(positions)
 }
 
-scan_divergence_opportunities <- function(institutional_data, top_n = 20, export_csv = TRUE) {
+scan_hedging_opportunities <- function(institutional_data, top_n = 20, export_csv = TRUE) {
   cat("\n================================================================\n")
-  cat("DIVERGENCE OPPORTUNITY SCANNER\n")
+  cat("HEDGING OPPORTUNITY SCANNER\n")
   cat("================================================================\n\n")
   
-  divergence_results <- calculate_divergence(institutional_data)
+  hedging_results <- calculate_hedging(institutional_data)
   
-  if (nrow(divergence_results) == 0) {
-    cat("⚠ No divergence opportunities found\n")
+  if (nrow(hedging_results) == 0) {
+    cat("⚠ No hedging opportunities found\n")
     return(list(summary = NULL, detailed = NULL))
   }
   
-  top_opportunities <- head(divergence_results, top_n)
+  top_opportunities <- head(hedging_results, top_n)
   
   cat("================================================================\n")
-  cat("TOP DIVERGENCE OPPORTUNITIES\n")
+  cat("TOP HEDGING OPPORTUNITIES\n")
   cat("================================================================\n\n")
   
   for (i in 1:min(10, nrow(top_opportunities))) {
     opp <- top_opportunities[i, ]
     cat(sprintf("%d. %s (%s)\n", i, opp$issuer, opp$issuerTicker))
-    cat(sprintf("   Divergence Score: %d/100\n", opp$divergence_score))
+    cat(sprintf("   Hedging Score: %d/100\n", opp$hedging_score))
     cat(sprintf("   Submanagers: %d (%d buying, %d selling)\n",
                 opp$n_submanagers, opp$n_buying, opp$n_selling))
     cat(sprintf("   Position Range: %.2f%% to %.2f%% (spread: %.2f%%)\n",
-                opp$min_pct_change, opp$max_pct_change, opp$divergence_magnitude))
+                opp$min_pct_change, opp$max_pct_change, opp$hedging_magnitude))
     cat(sprintf("   Aggregate Change: %.2f%%\n", opp$agg_pct_change))
     cat(sprintf("   Total Value: $%s\n", format(opp$total_value, big.mark = ",")))
     
-    if (abs(opp$agg_pct_change) < 10 & opp$divergence_magnitude > 50) {
+    if (abs(opp$agg_pct_change) < 10 & opp$hedging_magnitude > 50) {
       cat("   🔥 SIGNAL: Internal disagreement despite stable aggregate\n")
     } else if (opp$agg_pct_change > 0 & opp$min_pct_change < -15) {
       cat("   📈 SIGNAL: Net buying but one fund aggressively exiting\n")
@@ -139,8 +139,8 @@ scan_divergence_opportunities <- function(institutional_data, top_n = 20, export
   if (export_csv) {
     timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
     output_file <- here::here("data", "processed", 
-                              paste0("divergence_scan_", timestamp, ".csv"))
-    write.csv(divergence_results, output_file, row.names = FALSE)
+                              paste0("hedging_scan_", timestamp, ".csv"))
+    write.csv(hedging_results, output_file, row.names = FALSE)
     cat(sprintf("✓ Results exported to: %s\n\n", output_file))
   }
   
@@ -148,28 +148,28 @@ scan_divergence_opportunities <- function(institutional_data, top_n = 20, export
   cat("SCAN SUMMARY\n")
   cat("================================================================\n\n")
   
-  cat(sprintf("Total divergence opportunities: %d\n", nrow(divergence_results)))
+  cat(sprintf("Total hedging opportunities: %d\n", nrow(hedging_results)))
   cat(sprintf("High conviction (score >= 75): %d\n",
-              sum(divergence_results$divergence_score >= 75)))
+              sum(hedging_results$hedging_score >= 75)))
   cat(sprintf("Medium conviction (score 50-74): %d\n",
-              sum(divergence_results$divergence_score >= 50 & 
-                  divergence_results$divergence_score < 75)))
-  cat(sprintf("Average divergence magnitude: %.2f%%\n",
-              mean(divergence_results$divergence_magnitude)))
+              sum(hedging_results$hedging_score >= 50 & 
+                  hedging_results$hedging_score < 75)))
+  cat(sprintf("Average hedging magnitude: %.2f%%\n",
+              mean(hedging_results$hedging_magnitude)))
   
   return(list(
     summary = top_opportunities,
-    detailed = divergence_results,
+    detailed = hedging_results,
     timestamp = timestamp
   ))
 }
 
-generate_divergence_report <- function(institutional_data, ticker_symbol) {
+generate_hedging_report <- function(institutional_data, ticker_symbol) {
   cat("\n================================================================\n")
-  cat(sprintf("DIVERGENCE REPORT: %s\n", toupper(ticker_symbol)))
+  cat(sprintf("HEDGING REPORT: %s\n", toupper(ticker_symbol)))
   cat("================================================================\n\n")
   
-  detail <- get_divergence_detail(institutional_data, ticker_symbol)
+  detail <- get_hedging_detail(institutional_data, ticker_symbol)
   
   if (nrow(detail) == 0) {
     cat(sprintf("No data found for ticker: %s\n", ticker_symbol))
@@ -180,7 +180,7 @@ generate_divergence_report <- function(institutional_data, ticker_symbol) {
   cat("==============================\n\n")
   print(detail, n = Inf)
   
-  cat("\n\nDIVERGENCE ANALYSIS:\n")
+  cat("\n\nHEDGING ANALYSIS:\n")
   cat("====================\n\n")
   
   n_positions <- nrow(detail)
@@ -190,10 +190,10 @@ generate_divergence_report <- function(institutional_data, ticker_symbol) {
   range_change <- max(detail$pct_change, na.rm = TRUE) - min(detail$pct_change, na.rm = TRUE)
   
   cat(sprintf("Submanagers: %d | Buying: %d | Selling: %d\n", n_positions, n_buying, n_selling))
-  cat(sprintf("Average change: %.2f%% | Divergence: %.2f%%\n\n", avg_change, range_change))
+  cat(sprintf("Average change: %.2f%% | Hedging: %.2f%%\n\n", avg_change, range_change))
   
   if (n_buying > 0 & n_selling > 0) {
-    cat("🔴 DIVERGENCE DETECTED!\n")
+    cat("🔴 HEDGING DETECTED!\n")
     if (range_change > 50) cat("⚠️  HIGH MAGNITUDE\n")
   }
   
